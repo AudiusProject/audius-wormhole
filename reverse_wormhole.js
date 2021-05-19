@@ -227,7 +227,7 @@ async function main() {
 
   const transferFeeInstruction = solanaWeb3.SystemProgram.transfer({
     fromPubkey: ownerAccount.publicKey,
-    toPubKey: delegatePubKey,
+    toPubkey: delegatePubKey,
     lamports: await getBridgeTransferFee(),
   });
 
