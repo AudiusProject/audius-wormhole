@@ -64,10 +64,11 @@ const solanaConnection = new solanaWeb3.Connection("https://api.mainnet-beta.sol
 const wormholeAddress = new solanaWeb3.PublicKey("WormT3McKhFJ2RkiGpdw9GKvNCrB2aB54gb2uV9MfQC");
 const delegatePubKey = new solanaWeb3.PublicKey("9zyPU1mjgzaVyQsYwKJJ7AhVz5bgx5uc1NPABvAcUXsT");
 const tokenAddress = new solanaWeb3.PublicKey("CYzPVv1zB9RH6hRWRKprFoepdD8Y7Q5HefCqrybvetja");
+const assetAddress = Buffer.from("18aAA7115705e8be94bfFEBDE57Af9BFc265B998", "hex")
 
 // user specific
 const tokenPubKey = new solanaWeb3.PublicKey("GM9GzLXavHCnkRjkkdALd9Ttmgt6E74D72VaTy2jkW2L");
-const ownerAccount = new solanaWeb3.Account([]); // private key here
+const ownerAccount = new solanaWeb3.Account([]);
 const targetAddress = Buffer.from("E6CF5b674aE59cE2e6C46D054a1f2df00178577c", "hex");
 const amount = new u64(1000);
 
@@ -156,9 +157,10 @@ async function createLockAssetInstruction(nonce) {
   const seeds = [
     Buffer.from("transfer"),
     delegatePubKey.toBuffer(),
-    Buffer.from([1]),
-    padBuffer(tokenAddress.toBuffer(), 32),
-    Buffer.from([1]),
+    Buffer.from([2]),
+    // padBuffer(tokenAddress.toBuffer(), 32),
+    padBuffer(assetAddress, 32),
+    Buffer.from([2]),
     padBuffer(targetAddress, 32),
     tokenPubKey.toBuffer(),
     nonceBuffer,
@@ -173,9 +175,10 @@ async function createLockAssetInstruction(nonce) {
     {
       instruction: 1, // TransferOut instruction
       amount: padBuffer(Buffer.from(amount.toArray()), 32),
-      targetChain: 1,
-      assetAddress: padBuffer(tokenAddress.toBuffer(), 32),
-      assetChain: 1,
+      targetChain: 2,
+      // assetAddress: padBuffer(tokenAddress.toBuffer(), 32),
+      assetAddress: padBuffer(assetAddress, 32),
+      assetChain: 2,
       assetDecimals: 9,
       targetAddress: padBuffer(targetAddress, 32),
       nonce: nonce,
@@ -217,12 +220,12 @@ async function main() {
   );
 
   const approveInstruction = spl.Token.createApproveInstruction(
-    tokenAddress,
+    spl.TOKEN_PROGRAM_ID,
     tokenPubKey,
     delegatePubKey,
     ownerAccount.publicKey,
     [],
-    amount
+    amount,
   );
 
   const transferFeeInstruction = solanaWeb3.SystemProgram.transfer({
