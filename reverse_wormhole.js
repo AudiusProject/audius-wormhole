@@ -17,7 +17,7 @@ const publicKey = (property = 'publicKey') => {
   
     publicKeyLayout.decode = (buffer, offset) => {
       const data = _decode(buffer, offset);
-      return new PublicKey(data);
+      return new solanaWeb3.PublicKey(data);
     };
   
     publicKeyLayout.encode = (key, buffer, offset) => {
@@ -118,6 +118,26 @@ async function getBridgeTransferFee() {
   return ((await solanaConnection.getMinimumBalanceForRentExemption((40 + 1340) * 2)) + 18 * 10000 * 2);
 }
 
+const TransferOutProposalLayout = BufferLayout.struct([
+  BufferLayout.blob(32, 'amount'),
+  BufferLayout.u8('toChain'),
+  publicKey('sourceAddress'),
+  BufferLayout.blob(32, 'targetAddress'),
+  BufferLayout.blob(32, 'assetAddress'),
+  BufferLayout.u8('assetChain'),
+  BufferLayout.u8('assetDecimals'),
+  BufferLayout.seq(BufferLayout.u8(), 1), // 4 byte alignment because a u32 is following
+  BufferLayout.u32('nonce'),
+  BufferLayout.blob(1001, 'vaa'),
+  BufferLayout.seq(BufferLayout.u8(), 3), // 4 byte alignment because a u32 is following
+  BufferLayout.u32('vaaTime'),
+  BufferLayout.u32('lockupTime'),
+  BufferLayout.u8('pokeCounter'),
+  publicKey('signatureAccount'),
+  BufferLayout.u8('initialized'),
+  BufferLayout.seq(BufferLayout.u8(), 2), // 2 byte alignment
+]);
+
 async function createLockAssetInstruction(nonce) {
   const lockAssetDataLayout = BufferLayout.struct([
     BufferLayout.u8("instruction"),
@@ -129,26 +149,6 @@ async function createLockAssetInstruction(nonce) {
     BufferLayout.blob(32, "targetAddress"),
     BufferLayout.seq(BufferLayout.u8(), 1),
     BufferLayout.u32("nonce"),
-  ]);
-
-  const TransferOutProposalLayout = BufferLayout.struct([
-    BufferLayout.blob(32, 'amount'),
-    BufferLayout.u8('toChain'),
-    publicKey('sourceAddress'),
-    BufferLayout.blob(32, 'targetAddress'),
-    BufferLayout.blob(32, 'assetAddress'),
-    BufferLayout.u8('assetChain'),
-    BufferLayout.u8('assetDecimals'),
-    BufferLayout.seq(BufferLayout.u8(), 1), // 4 byte alignment because a u32 is following
-    BufferLayout.u32('nonce'),
-    BufferLayout.blob(1001, 'vaa'),
-    BufferLayout.seq(BufferLayout.u8(), 3), // 4 byte alignment because a u32 is following
-    BufferLayout.u32('vaaTime'),
-    BufferLayout.u32('lockupTime'),
-    BufferLayout.u8('pokeCounter'),
-    publicKey('signatureAccount'),
-    BufferLayout.u8('initialized'),
-    BufferLayout.seq(BufferLayout.u8(), 2), // 2 byte alignment
   ]);
 
   const nonceBuffer = Buffer.alloc(4);
@@ -270,13 +270,12 @@ async function main() {
         return;
       }
 
-      solanaConnection.removeAccountChangeListener(accountChangeListener);
-      solanaConnection.removeSlotChangeListener(slotUpdateListener);
+      solanaConnection.removeAccountChangeListener(listener);
 
       let signatures;
       while (!signatures) {
         try {
-          signatures = await bridge.fetchSignatureStatus(
+          signatures = await fetchSignatureStatus(
             lockup.signatureAccount,
           );
           break;
